@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SantéData Cam — Collecte & Analyse ML</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        * { font-family: 'Poppins', sans-serif; }
+        body { background: #f0f4ff; margin: 0; }
+        .navbar { background: linear-gradient(135deg, #6c5ce7, #a855f7); box-shadow: 0 2px 20px rgba(108,92,231,.4); }
+        .navbar-brand { font-weight: 700; font-size: 1.4rem; color: white !important; }
+        .navbar-brand i { margin-right: 8px; }
+        .nav-link { color: rgba(255,255,255,.85) !important; font-weight: 500; }
+        .nav-link.active, .nav-link:hover { color: white !important; }
+        .nav-pill { background: rgba(255,255,255,.2); border-radius: 20px; padding: 6px 16px !important; cursor: pointer; }
+        .nav-pill.active { background: rgba(255,255,255,.35); }
+        .section-content.d-none { display: none !important; }
+        .hero {
+            background-image: url('https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=1600&q=80');
+            background-size: cover; background-position: center;
+            color: white; padding: 70px 0 100px; position: relative; overflow: hidden;
+        }
+        .hero::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(80,40,180,0.75); z-index: 0; }
+        .hero .container { position: relative; z-index: 1; }
+        .hero-badge { background: rgba(255,255,255,.2); border: 1px solid rgba(255,255,255,.35); border-radius: 30px; padding: 7px 18px; font-size: .85rem; display: inline-block; margin-bottom: 14px; }
+        .hero h1 { font-size: 2.2rem; font-weight: 700; }
+        .mini-stat { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); border-radius: 14px; padding: 14px 22px; text-align: center; backdrop-filter: blur(4px); }
+        .mini-stat .v { font-size: 1.6rem; font-weight: 700; }
+        .mini-stat .l { font-size: .75rem; opacity: .85; }
+        .med-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: 0 8px 30px rgba(108,92,231,.13); transition: .3s; border: 2px solid transparent; }
+        .med-card:hover { transform: translateY(-6px); border-color: #a855f7; box-shadow: 0 16px 40px rgba(108,92,231,.22); }
+        .med-card img { width: 100%; height: 160px; object-fit: cover; }
+        .med-card .cap { padding: 14px; text-align: center; }
+        .med-card .cap .t { font-weight: 700; color: #6c5ce7; font-size: .9rem; }
+        .med-card .cap .s { font-size: .75rem; color: #636e72; margin-top: 3px; }
+        .form-card { background: white; border-radius: 24px; box-shadow: 0 12px 50px rgba(108,92,231,.12); }
+        .form-top { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 18px; border-bottom: 2px solid #f0f4ff; }
+        .form-top img { width: 56px; height: 56px; border-radius: 50%; object-fit: cover; border: 3px solid #6c5ce7; }
+        .form-top h4 { margin: 0; font-weight: 700; color: #6c5ce7; font-size: 1.1rem; }
+        .form-top p { margin: 0; font-size: .8rem; color: #636e72; }
+        .sec { background: linear-gradient(135deg, #6c5ce7, #a855f7); color: white; border-radius: 12px; padding: 12px 20px; margin-bottom: 20px; font-weight: 600; font-size: .92rem; }
+        .imc-box { background: linear-gradient(135deg, #f8f0ff, #f0f4ff); border-radius: 14px; padding: 18px; text-align: center; border: 2px dashed #c0a9f5; }
+        .imc-val { font-size: 2rem; font-weight: 700; color: #6c5ce7; }
+        .patho-label { background: #f8f0ff; border: 2px solid #e9d8fd; border-radius: 12px; padding: 10px 14px; cursor: pointer; transition: .2s; display: flex; align-items: center; gap: 8px; font-size: .87rem; }
+        .patho-label:hover { border-color: #6c5ce7; background: #f0e8ff; }
+        input[type="checkbox"] { accent-color: #6c5ce7; width: 16px; height: 16px; }
+        .btn-submit { background: linear-gradient(135deg, #6c5ce7, #a855f7); border: none; color: white; border-radius: 14px; padding: 15px 40px; font-weight: 600; font-size: 1rem; width: 100%; transition: .2s; }
+        .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(108,92,231,.45); color: white; }
+        .alert-ok { background: linear-gradient(135deg, #6c5ce7, #a855f7); color: white; border: none; border-radius: 14px; padding: 16px 20px; }
+        .info-section {
+            background-image: url('https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=1600&q=80');
+            background-size: cover; background-position: center; background-repeat: no-repeat;
+            color: white; padding: 70px 0; position: relative;
+        }
+        .info-section::before { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(20,10,60,0.82); z-index: 0; }
+        .info-section .container { position: relative; z-index: 1; }
+        .info-card { background: rgba(255,255,255,.1); border-radius: 16px; padding: 24px; text-align: center; border: 1px solid rgba(255,255,255,.2); transition: .3s; backdrop-filter: blur(4px); }
+        .info-card:hover { background: rgba(255,255,255,.18); transform: translateY(-5px); }
+        .info-card .ic { font-size: 2.5rem; margin-bottom: 12px; }
+        .info-card h5 { font-weight: 700; font-size: .95rem; margin-bottom: 6px; }
+        .info-card p { font-size: .8rem; opacity: .85; margin: 0; }
+        .card { border-radius: 20px; border: none; box-shadow: 0 8px 24px rgba(0,0,0,0.05); }
+        .plot-container { min-height: 400px; }
+        .table-patients { font-size: 0.85rem; background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.03); }
+        .table-patients thead { background: linear-gradient(135deg, #6c5ce7, #a855f7); color: white; }
+        .table-patients th, .table-patients td { vertical-align: middle; padding: 10px 6px; white-space: nowrap; }
+        .patient-row:hover { background-color: #f8f0ff; }
+        .badge-patho { background: #e9d8fd; color: #6c5ce7; font-size: 0.7rem; margin-right: 2px; }
+        footer { background: #1a1a2e; color: rgba(255,255,255,.7); text-align: center; padding: 22px; font-size: .85rem; margin-top: 60px; }
+        footer span { color: #a855f7; }
+        .ml-card { background: #fef9ff; border-left: 5px solid #6c5ce7; transition: 0.2s; margin-bottom: 25px; }
+        .result-text { background: #f8f4ff; border-radius: 12px; padding: 12px; font-size: 0.9rem; }
+        .modal-content { border-radius: 24px; }
+        .modal-header { background: linear-gradient(135deg, #6c5ce7, #a855f7); color: white; border-bottom: none; border-radius: 24px 24px 0 0; }
+        .modal-header .btn-close { filter: invert(1); }
+        /* Bouton Accueil actif */
+        .nav-pill-home { background: rgba(255,255,255,.35); border-radius: 20px; padding: 6px 16px !important; cursor: pointer; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" href="#"><i class="bi bi-heart-pulse-fill"></i>SantéData Cam</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nav">
+            <ul class="navbar-nav ms-auto gap-2">
+                <!-- BOUTON ACCUEIL -->
+                <li class="nav-item">
+                    <a class="nav-link nav-pill" id="btn-accueil" onclick="showSection('section-accueil')" href="#">
+                        <i class="bi bi-house-fill me-1"></i>Accueil
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-pill active" data-bs-toggle="modal" data-bs-target="#collecteModal" href="#">
+                        <i class="bi bi-clipboard-plus me-1"></i>Collecte
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-pill" data-section="section-dashboard" onclick="showSection('section-dashboard')" href="#">
+                        <i class="bi bi-bar-chart-line me-1"></i>Tableau de bord
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link nav-pill" data-section="section-statistiques" onclick="showSection('section-statistiques')" href="#">
+                        <i class="bi bi-calculator me-1"></i>Statistiques
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<!-- ======================= MODAL COLLECTE ======================= -->
+<div class="modal fade" id="collecteModal" tabindex="-1" aria-labelledby="collecteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="collecteModalLabel"><i class="bi bi-hospital me-2"></i>Formulaire de collecte unique</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div id="alertBoxModal" class="d-none mb-4"></div>
+                <form id="healthFormModal">
+                    <div class="sec"><i class="bi bi-person-fill me-2"></i>Informations personnelles</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4"><label class="form-label">Nom (optionnel)</label><input type="text" class="form-control" id="nomModal" placeholder="Anonyme par défaut"></div>
+                        <div class="col-md-4"><label class="form-label">Âge <span class="text-danger">*</span></label><input type="number" class="form-control" id="ageModal" placeholder="ex: 34" min="1" max="120" required></div>
+                        <div class="col-md-4"><label class="form-label">Sexe <span class="text-danger">*</span></label>
+                            <select class="form-select" id="sexeModal" required><option value="">— Choisir —</option><option value="Homme">Homme</option><option value="Femme">Femme</option></select>
+                        </div>
+                        <div class="col-md-6"><label class="form-label">Commune / Ville</label><input type="text" class="form-control" id="communeModal" placeholder="ex: Yaoundé, Douala..."></div>
+                    </div>
+
+                    <div class="sec"><i class="bi bi-rulers me-2"></i>Mesures corporelles</div>
+                    <div class="row g-3 mb-4 align-items-end">
+                        <div class="col-md-4"><label class="form-label">Poids (kg) <span class="text-danger">*</span></label><input type="number" class="form-control" id="poidsModal" placeholder="ex: 70" step="0.1" required></div>
+                        <div class="col-md-4"><label class="form-label">Taille (cm) <span class="text-danger">*</span></label><input type="number" class="form-control" id="tailleModal" placeholder="ex: 170" step="0.1" required></div>
+                        <div class="col-md-4">
+                            <div class="imc-box">
+                                <div class="imc-val" id="imcValModal">—</div>
+                                <div id="imcCatModal" style="font-size:.8rem;color:#636e72;">Entrez poids et taille</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="sec"><i class="bi bi-droplet-fill me-2"></i>Données biologiques (optionnel)</div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4"><label class="form-label">Glycémie (g/L)</label><input type="number" class="form-control" id="glycemieModal" placeholder="ex: 0.9" step="0.01"></div>
+                        <div class="col-md-4"><label class="form-label">Pression systolique (mmHg)</label><input type="number" class="form-control" id="presSysModal" placeholder="ex: 120"></div>
+                        <div class="col-md-4"><label class="form-label">Pression diastolique (mmHg)</label><input type="number" class="form-control" id="presDiaModal" placeholder="ex: 80"></div>
+                    </div>
+
+                    <div class="sec"><i class="bi bi-bandaid-fill me-2"></i>Pathologies déclarées</div>
+                    <div class="row g-2 mb-4">
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Paludisme" class="pathoCheckModal"> 🦟 Paludisme</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Hypertension" class="pathoCheckModal"> 🩸 Hypertension</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Diabète" class="pathoCheckModal"> 🍬 Diabète</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Tuberculose" class="pathoCheckModal"> 🫁 Tuberculose</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Obésité" class="pathoCheckModal"> ⚖️ Obésité</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Anémie" class="pathoCheckModal"> 🩺 Anémie</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Arthrite" class="pathoCheckModal"> 🦴 Arthrite</label></div>
+                        <div class="col-6 col-md-3"><label class="patho-label w-100"><input type="checkbox" value="Aucune" id="aucuneModal"> ✅ Aucune</label></div>
+                    </div>
+
+                    <button type="submit" class="btn btn-submit"><i class="bi bi-send-fill me-2"></i>Enregistrer les données</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================= SECTION ACCUEIL ======================= -->
+<div id="section-accueil" class="section-content">
+    <section class="hero">
+        <div class="container text-center">
+            <div class="hero-badge"><i class="bi bi-shield-check me-1"></i>Données anonymisées & sécurisées</div>
+            <h1 class="mt-2"><i class="bi bi-hospital me-2"></i>SantéData</h1>
+            <p class="col-md-7 mx-auto mb-4">Contribuez à l'amélioration des soins de santé au Cameroun en partageant vos données médicales de manière confidentielle.</p>
+            <div class="row justify-content-center g-3">
+                <div class="col-auto"><div class="mini-stat"><div class="v" id="heroTotal">—</div><div class="l">Patients enregistrés</div></div></div>
+                <div class="col-auto"><div class="mini-stat"><div class="v" id="heroAge">—</div><div class="l">Âge moyen</div></div></div>
+                <div class="col-auto"><div class="mini-stat"><div class="v" id="heroImc">—</div><div class="l">IMC moyen</div></div></div>
+            </div>
+        </div>
+    </section>
+
+    <div class="container py-5">
+        <h4 class="fw-bold mb-4 text-center" style="color:#6c5ce7;">📸 Nos domaines de collecte</h4>
+        <div class="row g-4 mb-5">
+            <div class="col-6 col-md-3">
+                <div class="med-card">
+                    <img src="https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&h=160&fit=crop" alt="Consultation">
+                    <div class="cap"><div class="t">🩺 Consultation</div><div class="s">Données cliniques générales</div></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="med-card">
+                    <img src="https://images.unsplash.com/photo-1631549916768-4119b2e5f926?w=400&h=160&fit=crop" alt="Biologie">
+                    <div class="cap"><div class="t">💉 Analyse biologique</div><div class="s">Glycémie & marqueurs sanguins</div></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="med-card">
+                    <img src="https://images.unsplash.com/photo-1530026186672-2cd00ffc50fe?w=400&h=160&fit=crop" alt="Cardiologie">
+                    <div class="cap"><div class="t">❤️ Cardiologie</div><div class="s">Pression artérielle & cœur</div></div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="med-card">
+                    <img src="https://images.unsplash.com/photo-1551190822-a9333d879b1f?w=400&h=160&fit=crop" alt="Statistiques">
+                    <div class="cap"><div class="t">📊 Statistiques</div><div class="s">Quartiles & analyse des données</div></div>
+                </div>
+            </div>
+        </div>
+        <div class="text-center">
+            <button class="btn btn-primary btn-lg" data-bs-toggle="modal" data-bs-target="#collecteModal"><i class="bi bi-plus-circle me-2"></i>Ajouter un patient</button>
+        </div>
+    </div>
+
+    <section class="info-section">
+        <div class="container">
+            <h3 class="text-center fw-bold mb-5">Pourquoi SantéData Cam ?</h3>
+            <div class="row g-4">
+                <div class="col-md-3"><div class="info-card"><div class="ic">📈</div><h5>Analyse statistique</h5><p>Moyennes, quartiles Q1/Q2/Q3, écart-types calculés automatiquement</p></div></div>
+                <div class="col-md-3"><div class="info-card"><div class="ic">🔬</div><h5>Recherche médicale</h5><p>Contribuer à la compréhension des maladies au Cameroun</p></div></div>
+                <div class="col-md-3"><div class="info-card"><div class="ic">🛡️</div><h5>Anonymat garanti</h5><p>Vos données sont anonymisées et protégées en toute sécurité</p></div></div>
+                <div class="col-md-3"><div class="info-card"><div class="ic">🌍</div><h5>Impact national</h5><p>Amélioration des soins de santé à travers tout le Cameroun</p></div></div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ======================= SECTION DASHBOARD ======================= -->
+<div id="section-dashboard" class="section-content d-none">
+    <div class="container py-4">
+        <h2 class="fw-bold mb-4" style="color:#6c5ce7;"><i class="bi bi-graph-up-arrow me-2"></i>Tableau de bord interactif</h2>
+        <div class="row mb-4" id="summary-cards"></div>
+        <div class="card p-3 mb-4"><h5 class="fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2"></i>Matrice de corrélation</h5><div id="heatmapCorr" class="plot-container"></div></div>
+        <div class="card p-3 mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold"><i class="bi bi-scatter-chart me-2"></i>Diagramme de dispersion</h5>
+                <div class="d-flex gap-2">
+                    <select id="xVar" class="form-select form-select-sm w-auto"></select>
+                    <span class="align-self-center">vs</span>
+                    <select id="yVar" class="form-select form-select-sm w-auto"></select>
+                    <button class="btn btn-sm btn-outline-primary" onclick="updateScatter()">Mettre à jour</button>
+                </div>
+            </div>
+            <div id="scatterPlot" class="plot-container"></div>
+        </div>
+        <div class="card p-3 mb-4"><h5 class="fw-bold"><i class="bi bi-box me-2"></i>Diagrammes en boîte (quartiles Q1 / médiane / Q3)</h5><div id="boxPlot" class="plot-container"></div></div>
+        <div class="card p-3 mb-4 ml-card">
+            <h5 class="fw-bold"><i class="bi bi-graph-up me-2"></i>1. Régression linéaire simple</h5>
+            <div class="row align-items-end">
+                <div class="col-md-4"><label class="form-label">Variable X</label><select id="lrX" class="form-select"></select></div>
+                <div class="col-md-4"><label class="form-label">Variable Y</label><select id="lrY" class="form-select"></select></div>
+                <div class="col-md-4"><button class="btn btn-primary mt-2" onclick="computeLinearRegression()">Calculer régression</button></div>
+            </div>
+            <div id="lrResult" class="result-text mt-3"></div>
+            <div id="lrPlot" style="height: 380px;" class="mt-2"></div>
+        </div>
+        <div class="card p-3 mb-4 ml-card">
+            <h5 class="fw-bold"><i class="bi bi-diagram-3 me-2"></i>2. Régression linéaire multiple</h5>
+            <div class="row">
+                <div class="col-md-4"><label class="form-label">Y dépendante</label><select id="mlY" class="form-select"></select></div>
+                <div class="col-md-6"><label class="form-label">X indépendantes (Ctrl+Click)</label><select id="mlX" class="form-select" multiple size="3"></select></div>
+                <div class="col-md-2"><button class="btn btn-primary mt-4" onclick="computeMultipleRegression()">Exécuter</button></div>
+            </div>
+            <div id="mlResult" class="result-text mt-3"></div>
+        </div>
+        <div class="card p-3 mb-4 ml-card">
+            <h5 class="fw-bold"><i class="bi bi-grid-3x3-gap-fill me-2"></i>3. ACP - Réduction de dimensions</h5>
+            <button class="btn btn-outline-primary mb-2" onclick="runPCA()">⟳ Calculer l'ACP</button>
+            <div id="pcaResult" class="result-text"></div>
+            <div id="pcaPlot" style="height: 450px;"></div>
+        </div>
+        <div class="card p-3 mb-4 ml-card">
+            <h5 class="fw-bold"><i class="bi bi-bar-chart-steps me-2"></i>4. Classification supervisée (Sexe ~ Âge+IMC+Glycémie)</h5>
+            <button class="btn btn-outline-primary mb-2" onclick="runSupervisedClassification()">⚙️ Entraîner le modèle logistique</button>
+            <div id="supResult" class="result-text"></div>
+        </div>
+        <div class="card p-3 mb-4 ml-card">
+            <h5 class="fw-bold"><i class="bi bi-diagram-2 me-2"></i>5. K-means (Âge, IMC, Glycémie)</h5>
+            <div class="row">
+                <div class="col-md-3"><label class="form-label">K</label><input type="number" id="kValue" class="form-control" value="3" min="2" max="6"></div>
+                <div class="col-md-3"><button class="btn btn-primary mt-4" onclick="runKMeans()">Exécuter K‑means</button></div>
+            </div>
+            <div id="kmeansResult" class="result-text mt-2"></div>
+            <div id="kmeansPlot" style="height: 420px;"></div>
+        </div>
+        <div class="card p-3">
+            <h5 class="fw-bold mb-3"><i class="bi bi-people-fill me-2"></i>Patients enregistrés</h5>
+            <input type="text" id="patientSearch" class="form-control mb-3" placeholder="Rechercher..." oninput="filterPatients()">
+            <div id="patientTableContainer"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ======================= SECTION STATISTIQUES ======================= -->
+<div id="section-statistiques" class="section-content d-none">
+    <div class="container py-5">
+        <h2 class="fw-bold mb-4 text-center" style="color:#6c5ce7;">📐 Analyse descriptive détaillée</h2>
+        <div class="card p-4"><div id="stats-content"><p class="text-center text-muted">Chargement...</p></div></div>
+        <div class="text-center mt-4"><a href="/api/export/csv" class="btn btn-success"><i class="bi bi-download"></i> Exporter CSV</a></div>
+    </div>
+</div>
+
+<footer>
+    <p class="mb-0">🏥 <span>SantéData Cam</span> — Plateforme de collecte de données de santé | Cameroun 2025</p>
+    <p style="font-size:.75rem;" class="mb-0">INF 232 EC2 — Collecte & Analyse descriptive | Python Flask + ML front-end</p>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let allPatients = [];
+    let dashboardLoaded = false;
+    let statistiquesLoaded = false;
+
+    function showSection(sectionId) {
+        document.querySelectorAll('.section-content').forEach(el => el.classList.add('d-none'));
+        document.getElementById(sectionId).classList.remove('d-none');
+
+        // Mise à jour visuelle du bouton actif dans la navbar
+        document.querySelectorAll('.nav-pill').forEach(el => el.classList.remove('active'));
+        const activeBtn = document.querySelector(`[data-section="${sectionId}"]`);
+        if (activeBtn) activeBtn.classList.add('active');
+        if (sectionId === 'section-accueil') {
+            document.getElementById('btn-accueil').classList.add('active');
+        }
+
+        if (sectionId === 'section-dashboard' && !dashboardLoaded) { loadDashboard(); dashboardLoaded = true; }
+        else if (sectionId === 'section-statistiques' && !statistiquesLoaded) { loadStatistiques(); statistiquesLoaded = true; }
+
+        if (sectionId === 'section-dashboard' && dashboardLoaded) {
+            setTimeout(() => {
+                ['heatmapCorr','scatterPlot','boxPlot','lrPlot','pcaPlot','kmeansPlot'].forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) Plotly.Plots.resize(el);
+                });
+            }, 100);
+        }
+    }
+
+    // ==================== COLLECTE MODAL ====================
+    function calcImcModal() {
+        const p = parseFloat(document.getElementById('poidsModal').value);
+        const t = parseFloat(document.getElementById('tailleModal').value);
+        if (p && t) {
+            const imc = p / Math.pow(t / 100, 2);
+            document.getElementById('imcValModal').textContent = imc.toFixed(1);
+            let cat = imc < 18.5 ? '⚠️ Insuffisance pondérale' : imc < 25 ? '✅ Poids normal' : imc < 30 ? '⚠️ Surpoids' : '🔴 Obésité';
+            document.getElementById('imcCatModal').textContent = cat;
+        }
+    }
+    document.getElementById('poidsModal').addEventListener('input', calcImcModal);
+    document.getElementById('tailleModal').addEventListener('input', calcImcModal);
+
+    document.getElementById('aucuneModal').addEventListener('change', function(e) {
+        if (e.target.checked) document.querySelectorAll('#healthFormModal .pathoCheckModal').forEach(c => { if (c.id !== 'aucuneModal') c.checked = false; });
+    });
+    document.querySelectorAll('#healthFormModal .pathoCheckModal').forEach(cb => {
+        cb.addEventListener('change', () => { if (cb.checked && cb.value !== 'Aucune') document.getElementById('aucuneModal').checked = false; });
+    });
+
+    document.getElementById('healthFormModal').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = e.target.querySelector('button[type="submit"]');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Enregistrement...';
+        let pathologies = [...document.querySelectorAll('#healthFormModal .pathoCheckModal:checked')].map(c => c.value);
+        const data = {
+            nom: document.getElementById('nomModal').value,
+            age: document.getElementById('ageModal').value,
+            sexe: document.getElementById('sexeModal').value,
+            poids: document.getElementById('poidsModal').value,
+            taille: document.getElementById('tailleModal').value,
+            glycemie: document.getElementById('glycemieModal').value,
+            pression_sys: document.getElementById('presSysModal').value,
+            pression_dia: document.getElementById('presDiaModal').value,
+            pathologies,
+            commune: document.getElementById('communeModal').value
+        };
+        try {
+            const res = await fetch('/api/patients', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+            const json = await res.json();
+            const ab = document.getElementById('alertBoxModal');
+            ab.classList.remove('d-none');
+            if (res.ok) {
+                ab.className = 'alert-ok mb-4 p-3';
+                ab.innerHTML = `<i class="bi bi-check-circle-fill me-2"></i><strong>Données enregistrées !</strong> IMC : <strong>${json.imc}</strong>.`;
+                e.target.reset();
+                document.getElementById('imcValModal').textContent = '—';
+                document.getElementById('imcCatModal').textContent = 'Entrez poids et taille';
+                loadHeroStats();
+                if (dashboardLoaded) loadDashboard();
+                if (statistiquesLoaded) loadStatistiques();
+                setTimeout(() => { const modal = bootstrap.Modal.getInstance(document.getElementById('collecteModal')); if (modal) modal.hide(); ab.classList.add('d-none'); }, 1500);
+            } else {
+                ab.className = 'alert alert-danger mb-4';
+                ab.innerHTML = `<i class="bi bi-exclamation-triangle me-2"></i>${json.error}`;
+            }
+        } catch { document.getElementById('alertBoxModal').innerHTML = '<div class="alert alert-danger">Erreur de connexion.</div>'; }
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-send-fill me-2"></i>Enregistrer les données';
+    });
+
+    async function loadHeroStats() {
+        try {
+            const resp = await fetch('/api/stats/descriptives');
+            const s = await resp.json();
+            if (s.total > 0) {
+                document.getElementById('heroTotal').textContent = s.total;
+                document.getElementById('heroAge').textContent = s.age.moyenne + ' ans';
+                document.getElementById('heroImc').textContent = s.imc.moyenne;
+            }
+        } catch(e) {}
+    }
+
+    // ==================== DASHBOARD ====================
+    const numericVars = ['age', 'poids', 'taille', 'imc', 'glycemie', 'pression_sys', 'pression_dia'];
+    const varLabels = { age: 'Âge (ans)', poids: 'Poids (kg)', taille: 'Taille (cm)', imc: 'IMC', glycemie: 'Glycémie (g/L)', pression_sys: 'Pression systolique', pression_dia: 'Pression diastolique' };
+
+    async function loadDashboard() {
+        try {
+            const resp = await fetch('/api/patients');
+            allPatients = await resp.json();
+            renderSummary(); populateSelects(); loadCorrelationMatrix(); loadBoxPlots(); updateScatter(); renderPatientList(); populateMLSelects();
+        } catch (e) { document.getElementById('patientTableContainer').innerHTML = '<p class="text-danger">Erreur chargement patients.</p>'; }
+    }
+
+    function renderSummary() {
+        const total = allPatients.length;
+        const ages = allPatients.map(p => p.age).filter(a => a);
+        const avgAge = ages.length ? (ages.reduce((a,b) => a+b,0)/ages.length).toFixed(1) : '—';
+        const imcs = allPatients.map(p => p.imc).filter(i => i);
+        const avgImc = imcs.length ? (imcs.reduce((a,b) => a+b,0)/imcs.length).toFixed(1) : '—';
+        document.getElementById('summary-cards').innerHTML = `
+            <div class="col-md-3"><div class="card p-3 text-center"><h6>Total patients</h6><h2>${total}</h2></div></div>
+            <div class="col-md-3"><div class="card p-3 text-center"><h6>Âge moyen</h6><h2>${avgAge}</h2></div></div>
+            <div class="col-md-3"><div class="card p-3 text-center"><h6>IMC moyen</h6><h2>${avgImc}</h2></div></div>
+            <div class="col-md-3"><div class="card p-3 text-center"><h6>Données</h6><h2>${total ? '✅' : '⚠️'}</h2></div></div>`;
+    }
+
+    function populateSelects() {
+        const xSelect = document.getElementById('xVar'), ySelect = document.getElementById('yVar');
+        xSelect.innerHTML = ySelect.innerHTML = '';
+        numericVars.forEach(v => { const opt = document.createElement('option'); opt.value = v; opt.textContent = varLabels[v]; xSelect.appendChild(opt.cloneNode(true)); ySelect.appendChild(opt); });
+        xSelect.value = 'age'; ySelect.value = 'imc';
+    }
+
+    async function loadCorrelationMatrix() {
+        try {
+            const resp = await fetch('/api/correlation');
+            const data = await resp.json();
+            if (data.error) { document.getElementById('heatmapCorr').innerHTML = `<p class="text-muted">${data.error}</p>`; return; }
+            const labels = data.variables.map(v => varLabels[v] || v);
+            Plotly.newPlot('heatmapCorr', [{ z: data.matrix, x: labels, y: labels, type: 'heatmap', colorscale: 'RdBu', zmin: -1, zmax: 1 }],
+                { title: 'Matrice de corrélation de Pearson', height: 500, margin: { l: 120, r: 20, t: 40, b: 100 }, xaxis: { tickangle: -30 } }, { responsive: true });
+        } catch (e) {}
+    }
+
+    function loadBoxPlots() {
+        const traces = numericVars.map(v => ({ y: allPatients.map(p => p[v]).filter(val => val != null), name: varLabels[v], type: 'box', boxmean: 'sd', marker: { color: '#6c5ce7' } })).filter(t => t.y.length > 0);
+        Plotly.newPlot('boxPlot', traces, { title: 'Distribution et quartiles (Q1, médiane, Q3)', height: 450, showlegend: false }, { responsive: true });
+    }
+
+    window.updateScatter = function() {
+        const xVar = document.getElementById('xVar').value, yVar = document.getElementById('yVar').value;
+        const xVals = [], yVals = [];
+        allPatients.forEach(p => { if (p[xVar] != null && p[yVar] != null) { xVals.push(p[xVar]); yVals.push(p[yVar]); } });
+        Plotly.newPlot('scatterPlot', [{ x: xVals, y: yVals, mode: 'markers', type: 'scatter', marker: { size: 8, color: '#a855f7', opacity: 0.7 } }],
+            { xaxis: { title: varLabels[xVar] }, yaxis: { title: varLabels[yVar] }, height: 400, hovermode: 'closest' }, { responsive: true });
+    };
+
+    function renderPatientList() {
+        const container = document.getElementById('patientTableContainer');
+        if (!allPatients.length) { container.innerHTML = '<p class="text-muted">Aucun patient.</p>'; return; }
+        let html = `<div class="table-responsive"><table class="table table-hover table-patients mb-0" id="patientsTable"><thead><tr><th>ID</th><th>Nom</th><th>Âge</th><th>Sexe</th><th>IMC</th><th>Glycémie</th><th>PAS/PAD</th><th>Pathologies</th><th>Commune</th><th>Date</th></tr></thead><tbody>`;
+        allPatients.forEach(p => {
+            const pathologiesHtml = p.pathologies ? p.pathologies.split(',').map(patho => `<span class="badge badge-patho">${patho.trim()}</span>`).join(' ') : '—';
+            const pression = (p.pression_sys || p.pression_dia) ? `${p.pression_sys || '—'} / ${p.pression_dia || '—'}` : '—';
+            const date = p.date_enregistrement ? new Date(p.date_enregistrement).toLocaleDateString('fr-FR') : '—';
+            html += `<tr><td>${p.id}</td><td>${p.nom || 'Anonyme'}</td><td>${p.age || '—'}</td><td>${p.sexe || '—'}</td><td>${p.imc || '—'}</td><td>${p.glycemie || '—'}</td><td>${pression}</td><td>${pathologiesHtml}</td><td>${p.commune || '—'}</td><td>${date}</td></tr>`;
+        });
+        container.innerHTML = html + `</tbody></table></div>`;
+    }
+
+    window.filterPatients = function() {
+        const filter = document.getElementById('patientSearch').value.toUpperCase();
+        document.querySelectorAll('#patientsTable tbody tr').forEach(row => {
+            row.style.display = (row.cells[1].textContent.toUpperCase().includes(filter) || row.cells[8].textContent.toUpperCase().includes(filter)) ? '' : 'none';
+        });
+    };
+
+    function populateMLSelects() {
+        ['lrX','lrY','mlY','mlX'].forEach(id => { document.getElementById(id).innerHTML = ''; });
+        numericVars.forEach(v => {
+            ['lrX','lrY','mlY','mlX'].forEach(id => { const opt = document.createElement('option'); opt.value = v; opt.textContent = varLabels[v]; document.getElementById(id).appendChild(opt); });
+        });
+        document.getElementById('lrX').value = 'age'; document.getElementById('lrY').value = 'imc'; document.getElementById('mlY').value = 'imc';
+    }
+
+    window.computeLinearRegression = function() {
+        let xVar = document.getElementById('lrX').value, yVar = document.getElementById('lrY').value;
+        let data = allPatients.filter(p => p[xVar] != null && p[yVar] != null);
+        if (data.length < 3) { document.getElementById('lrResult').innerHTML = '<span class="text-danger">Pas assez de données.</span>'; return; }
+        let x = data.map(p => p[xVar]), y = data.map(p => p[yVar]);
+        let n = x.length, sumX = x.reduce((a,b)=>a+b,0), sumY = y.reduce((a,b)=>a+b,0);
+        let sumXY = x.reduce((acc,xi,i)=>acc+xi*y[i],0), sumX2 = x.reduce((acc,xi)=>acc+xi*xi,0);
+        let slope = (n*sumXY - sumX*sumY) / (n*sumX2 - sumX*sumX);
+        let intercept = (sumY - slope*sumX)/n;
+        let yPred = x.map(xi => slope*xi + intercept);
+        let ssRes = y.reduce((acc,yi,i)=>acc+(yi-yPred[i])**2,0);
+        let ssTot = y.reduce((acc,yi)=>acc+(yi-sumY/n)**2,0);
+        let r2 = 1 - ssRes/ssTot;
+        document.getElementById('lrResult').innerHTML = `<strong>Équation :</strong> ${yVar} = ${slope.toFixed(4)} * ${xVar} + ${intercept.toFixed(4)}<br><strong>R² = ${r2.toFixed(4)}</strong>`;
+        Plotly.newPlot('lrPlot',
+            [{ x, y, mode:'markers', type:'scatter', name:'Observations', marker:{color:'#6c5ce7'} }, { x, y:yPred, mode:'lines', type:'scatter', name:'Régression', line:{color:'#e84393',width:3} }],
+            { title:`Régression : ${varLabels[yVar]} ~ ${varLabels[xVar]}`, xaxis:{title:varLabels[xVar]}, yaxis:{title:varLabels[yVar]}, height:380 }, {responsive:true});
+    };
+
+    window.computeMultipleRegression = function() {
+        let yVar = document.getElementById('mlY').value;
+        let selectedX = [...document.getElementById('mlX').selectedOptions].map(opt => opt.value);
+        if (!selectedX.length) { document.getElementById('mlResult').innerHTML = '<span class="text-danger">Sélectionnez X.</span>'; return; }
+        let data = allPatients.filter(p => p[yVar]!=null && selectedX.every(x=>p[x]!=null));
+        if (data.length < selectedX.length+2) { document.getElementById('mlResult').innerHTML = '<span class="text-danger">Observations insuffisantes.</span>'; return; }
+        let n = data.length, X = data.map(p=>[1,...selectedX.map(x=>p[x])]), Y = data.map(p=>p[yVar]);
+        let Xt = X[0].map((_,col)=>X.map(row=>row[col]));
+        let XtX = Xt.map(row=>Xt[0].map((_,j)=>row.reduce((sum,val,idx)=>sum+val*Xt[j][idx],0)));
+        let XtY = Xt.map(row=>row.reduce((sum,val,idx)=>sum+val*Y[idx],0));
+        let coeffs = mathSolve(XtX, XtY);
+        let yPred = X.map(row=>row.reduce((sum,val,i)=>sum+val*coeffs[i],0));
+        let ssRes = Y.reduce((sum,yi,i)=>sum+(yi-yPred[i])**2,0);
+        let ssTot = Y.reduce((sum,yi)=>sum+(yi-Y.reduce((a,b)=>a+b,0)/n)**2,0);
+        let r2 = 1-ssRes/ssTot, r2adj = 1-((1-r2)*(n-1)/(n-selectedX.length-1));
+        let eq = selectedX.map((x,i)=>`${coeffs[i+1].toFixed(4)}*${varLabels[x]}`).join(' + ');
+        document.getElementById('mlResult').innerHTML = `<strong>Régression multiple</strong><br>Y = ${coeffs[0].toFixed(4)} + ${eq}<br>R² = ${r2.toFixed(4)} | R² ajusté = ${r2adj.toFixed(4)}`;
+    };
+
+    function mathSolve(A, b) {
+        let n = A.length, M = A.map((row,i)=>[...row, b[i]]);
+        for (let i=0;i<n;i++) {
+            let maxRow = i;
+            for (let k=i+1;k<n;k++) if (Math.abs(M[k][i]) > Math.abs(M[maxRow][i])) maxRow = k;
+            [M[i], M[maxRow]] = [M[maxRow], M[i]];
+            for (let k=i+1;k<n;k++) { let f = M[k][i]/M[i][i]; for (let j=i;j<=n;j++) M[k][j] -= f*M[i][j]; }
+        }
+        let x = new Array(n);
+        for (let i=n-1;i>=0;i--) { x[i] = M[i][n]/M[i][i]; for (let k=i-1;k>=0;k--) M[k][n] -= M[k][i]*x[i]; }
+        return x;
+    }
+
+    window.runPCA = function() {
+        let vars = ['age','imc','glycemie','pression_sys','pression_dia'];
+        let data = allPatients.filter(p=>vars.every(v=>p[v]!=null));
+        if (data.length < 3) { document.getElementById('pcaResult').innerHTML = '<span class="text-danger">Données insuffisantes.</span>'; return; }
+        let matrix = data.map(p=>vars.map(v=>p[v]));
+        let means = vars.map((_,j)=>matrix.reduce((sum,row)=>sum+row[j],0)/matrix.length);
+        let scaled = matrix.map(row=>row.map((val,j)=>val-means[j]));
+        let cov = Array(vars.length).fill().map(()=>Array(vars.length).fill(0));
+        for (let i=0;i<vars.length;i++) for (let j=0;j<vars.length;j++) cov[i][j] = scaled.reduce((sum,row)=>sum+row[i]*row[j],0)/(scaled.length-1);
+        let {eigenvalues, eigenvectors} = eigenDecomposition(cov);
+        let totalVar = eigenvalues.reduce((a,b)=>a+b,0);
+        let explained = eigenvalues.map(e=>e/totalVar);
+        let proj = scaled.map(row=>row.map((_,idx)=>row.reduce((sum,val,j)=>sum+val*eigenvectors[j][idx],0)));
+        Plotly.newPlot('pcaPlot',
+            [{ x:proj.map(p=>p[0]), y:proj.map(p=>p[1]), mode:'markers', type:'scatter', text:data.map(p=>`Âge:${p.age}`), marker:{size:8,color:'#a855f7'} }],
+            { title:`ACP - CP1 (${(explained[0]*100).toFixed(1)}%) vs CP2 (${(explained[1]*100).toFixed(1)}%)`, xaxis:{title:'CP1'}, yaxis:{title:'CP2'}, height:420 }, {responsive:true});
+        document.getElementById('pcaResult').innerHTML = `✅ Variance expliquée : CP1 = ${(explained[0]*100).toFixed(1)}%, CP2 = ${(explained[1]*100).toFixed(1)}%.`;
+    };
+
+    function eigenDecomposition(A) {
+        let n = A.length, V = Array(n).fill().map(()=>Array(n).fill(0));
+        for (let i=0;i<n;i++) V[i][i]=1;
+        for (let iter=0;iter<100;iter++) {
+            let max=0, p=0, q=0;
+            for (let i=0;i<n;i++) for (let j=i+1;j<n;j++) if (Math.abs(A[i][j])>max) { max=Math.abs(A[i][j]); p=i; q=j; }
+            if (max < 1e-8) break;
+            let theta = 0.5*Math.atan2(2*A[p][q], A[q][q]-A[p][p]);
+            let c=Math.cos(theta), s=Math.sin(theta);
+            let newA = A.map(row=>[...row]);
+            for (let i=0;i<n;i++) { let aip=newA[i][p],aiq=newA[i][q]; newA[i][p]=c*aip+s*aiq; newA[i][q]=-s*aip+c*aiq; }
+            for (let j=0;j<n;j++) { let apj=newA[p][j],aqj=newA[q][j]; newA[p][j]=c*apj+s*aqj; newA[q][j]=-s*apj+c*aqj; }
+            newA[p][q]=0; newA[q][p]=0;
+            newA[p][p]=c*c*A[p][p]+2*c*s*A[p][q]+s*s*A[q][q];
+            newA[q][q]=s*s*A[p][p]-2*c*s*A[p][q]+c*c*A[q][q];
+            for (let i=0;i<n;i++) for (let j=0;j<n;j++) A[i][j]=newA[i][j];
+            let newV = V.map(row=>[...row]);
+            for (let i=0;i<n;i++) { let vip=newV[i][p],viq=newV[i][q]; newV[i][p]=c*vip+s*viq; newV[i][q]=-s*vip+c*viq; }
+            V=newV;
+        }
+        return { eigenvalues: A.map((row,i)=>row[i]), eigenvectors: V };
+    }
+
+    window.runSupervisedClassification = function() {
+        let data = allPatients.filter(p => p.sexe && (p.sexe==='Homme'||p.sexe==='Femme') && p.age && p.imc && p.glycemie!=null);
+        if (data.length < 10) { document.getElementById('supResult').innerHTML = '<span class="text-danger">Données insuffisantes.</span>'; return; }
+        let X = data.map(p=>[1,p.age,p.imc,p.glycemie]), y = data.map(p=>p.sexe==='Homme'?1:0);
+        let theta = [0,0,0,0];
+        for (let it=0;it<2000;it++) {
+            let grad = [0,0,0,0];
+            for (let i=0;i<X.length;i++) { let h=1/(1+Math.exp(-theta.reduce((s,th,j)=>s+th*X[i][j],0))), err=h-y[i]; for (let j=0;j<4;j++) grad[j]+=err*X[i][j]; }
+            for (let j=0;j<4;j++) theta[j]-=0.001*grad[j]/X.length;
+        }
+        let correct = X.filter((row,i)=>(1/(1+Math.exp(-theta.reduce((s,th,j)=>s+th*row[j],0)))>=0.5?1:0)===y[i]).length;
+        document.getElementById('supResult').innerHTML = `<strong>Régression logistique</strong><br>Précision : ${(correct/X.length*100).toFixed(1)}%<br>Coefficients : intercept=${theta[0].toFixed(3)}, âge=${theta[1].toFixed(3)}, IMC=${theta[2].toFixed(3)}, glycémie=${theta[3].toFixed(3)}`;
+    };
+
+    window.runKMeans = function() {
+        let k = parseInt(document.getElementById('kValue').value);
+        let data = allPatients.filter(p => p.age!=null && p.imc!=null && p.glycemie!=null);
+        if (data.length < k) { document.getElementById('kmeansResult').innerHTML = '<span class="text-danger">Pas assez de données.</span>'; return; }
+        let points = data.map(p=>[p.age,p.imc,p.glycemie]);
+        let centroids = points.slice(0,k).map(p=>[...p]), labels = new Array(points.length).fill(0);
+        for (let iter=0;iter<100;iter++) {
+            for (let i=0;i<points.length;i++) {
+                let minDist=Infinity, best=0;
+                for (let c=0;c<k;c++) { let dist=Math.hypot(points[i][0]-centroids[c][0],points[i][1]-centroids[c][1],points[i][2]-centroids[c][2]); if (dist<minDist) { minDist=dist; best=c; } }
+                labels[i]=best;
+            }
+            let newC = Array(k).fill().map(()=>[0,0,0]), counts = Array(k).fill(0);
+            for (let i=0;i<points.length;i++) { let c=labels[i]; newC[c][0]+=points[i][0]; newC[c][1]+=points[i][1]; newC[c][2]+=points[i][2]; counts[c]++; }
+            for (let c=0;c<k;c++) if (counts[c]>0) { newC[c][0]/=counts[c]; newC[c][1]/=counts[c]; newC[c][2]/=counts[c]; }
+            let diff=0; for (let c=0;c<k;c++) diff+=Math.hypot(centroids[c][0]-newC[c][0],centroids[c][1]-newC[c][1],centroids[c][2]-newC[c][2]);
+            centroids=newC; if (diff<0.001) break;
+        }
+        const colors=['#e84393','#6c5ce7','#00b894','#fdcb6e','#e17055','#0984e3'];
+        let traces = Array.from({length:k},(_,c) => { let pts=points.filter((_,idx)=>labels[idx]===c); return { x:pts.map(p=>p[0]), y:pts.map(p=>p[1]), mode:'markers', type:'scatter', name:`Cluster ${c+1}`, marker:{color:colors[c%colors.length],size:8} }; });
+        Plotly.newPlot('kmeansPlot', traces, { title:`K‑means (k=${k}) : Âge vs IMC`, xaxis:{title:'Âge'}, yaxis:{title:'IMC'}, height:400 }, {responsive:true});
+        document.getElementById('kmeansResult').innerHTML = `✅ ${k} clusters formés.`;
+    };
+
+    // ==================== STATISTIQUES ====================
+    async function loadStatistiques() {
+        const container = document.getElementById('stats-content');
+        try {
+            const [resp, respPatients] = await Promise.all([fetch('/api/stats/descriptives'), fetch('/api/patients')]);
+            const statsBase = await resp.json(), patients = await respPatients.json();
+            if (!statsBase.total) { container.innerHTML = '<p class="text-muted">Aucune donnée.</p>'; return; }
+            const labels = { age:'Âge', poids:'Poids', taille:'Taille', imc:'IMC', glycemie:'Glycémie' };
+            let tableHtml = `<div class="table-responsive"><table class="table table-bordered"><thead><tr><th>Variable</th><th>n</th><th>Moyenne</th><th>Écart-type</th><th>Min</th><th>Q1</th><th>Médiane</th><th>Q3</th><th>Max</th></tr></thead><tbody>`;
+            for (let v of ['age','poids','taille','imc','glycemie']) {
+                if (statsBase[v]) { let s=statsBase[v]; tableHtml += `<tr><td>${labels[v]}</td><td>${s.count}</td><td>${s.moyenne}</td><td>${s.ecart_type}</td><td>${s.minimum}</td><td>${s.Q1}</td><td>${s.Q2}</td><td>${s.Q3}</td><td>${s.maximum}</td></tr>`; }
+            }
+            if (statsBase.pression) {
+                tableHtml += `<tr><td>Pression systolique</td><td>${statsBase.pression.systolique.count}</td><td>${statsBase.pression.systolique.moyenne}</td><td>${statsBase.pression.systolique.ecart_type}</td><td colspan="5"></td></tr>`;
+                tableHtml += `<tr><td>Pression diastolique</td><td>${statsBase.pression.diastolique.count}</td><td>${statsBase.pression.diastolique.moyenne}</td><td>${statsBase.pression.diastolique.ecart_type}</td><td colspan="5"></td></tr>`;
+            }
+            container.innerHTML = tableHtml + `</tbody></table></div>`;
+            const meanVal = (arr, key) => arr.length ? (arr.reduce((a,b)=>a+b[key],0)/arr.length).toFixed(1) : '—';
+            let male=patients.filter(p=>p.sexe==='Homme'), female=patients.filter(p=>p.sexe==='Femme');
+            let jeunes=patients.filter(p=>p.age&&p.age<30), adultes=patients.filter(p=>p.age&&p.age>=30&&p.age<=50), seniors=patients.filter(p=>p.age&&p.age>50);
+            container.innerHTML += `<div class="mt-4"><h5>Analyses par sous-groupes</h5><div class="row"><div class="col-md-6"><div class="card p-2">Hommes (n=${male.length})<br>Âge moyen: ${meanVal(male,'age')}<br>IMC moyen: ${meanVal(male,'imc')}</div></div><div class="col-md-6"><div class="card p-2">Femmes (n=${female.length})<br>Âge moyen: ${meanVal(female,'age')}<br>IMC moyen: ${meanVal(female,'imc')}</div></div></div><div class="row mt-2"><div class="col-md-4"><div class="card p-2">Jeunes (<30 ans): n=${jeunes.length}<br>IMC: ${meanVal(jeunes,'imc')}</div></div><div class="col-md-4"><div class="card p-2">Adultes (30-50): n=${adultes.length}<br>IMC: ${meanVal(adultes,'imc')}</div></div><div class="col-md-4"><div class="card p-2">Seniors (>50): n=${seniors.length}<br>IMC: ${meanVal(seniors,'imc')}</div></div></div></div>`;
+            let shapeHtml = `<div class="mt-4"><h5>Mesures de forme et position</h5><table class="table table-sm"><thead><tr><th>Variable</th><th>Asymétrie</th><th>Kurtosis</th><th>IC 95%</th></tr></thead><tbody>`;
+            for (let v of ['age','imc','glycemie']) {
+                let vals = patients.map(p=>p[v]).filter(x=>x!=null);
+                if (vals.length>1) {
+                    let m=vals.reduce((a,b)=>a+b,0)/vals.length, sd=Math.sqrt(vals.map(x=>Math.pow(x-m,2)).reduce((a,b)=>a+b,0)/vals.length);
+                    let skew=0, kurt=0;
+                    if (sd!==0) { skew=vals.map(x=>Math.pow((x-m)/sd,3)).reduce((a,b)=>a+b,0)/vals.length; kurt=vals.map(x=>Math.pow((x-m)/sd,4)).reduce((a,b)=>a+b,0)/vals.length-3; }
+                    let ic_low=m-1.96*sd/Math.sqrt(vals.length), ic_high=m+1.96*sd/Math.sqrt(vals.length);
+                    shapeHtml += `<tr><td>${labels[v]}</td><td>${skew.toFixed(3)}</td><td>${kurt.toFixed(3)}</td><td>[${ic_low.toFixed(2)} ; ${ic_high.toFixed(2)}]</td></tr>`;
+                }
+            }
+            container.innerHTML += shapeHtml + `</tbody></table></div>`;
+            let imcVals=patients.map(p=>p.imc).filter(x=>x), glyVals=patients.map(p=>p.glycemie).filter(x=>x);
+            let insights=[];
+            if (imcVals.length && imcVals.reduce((a,b)=>a+b,0)/imcVals.length > 25) insights.push("⚠️ IMC moyen élevé (>25) indiquant un surpoids général.");
+            if (glyVals.length && glyVals.reduce((a,b)=>a+b,0)/glyVals.length > 1.1) insights.push("⚠️ Glycémie moyenne > 1.1 g/L, risque diabétique potentiel.");
+            if (!insights.length) insights.push("✅ Aucune tendance particulière détectée.");
+            container.innerHTML += `<div class="mt-4"><h5>Rapport statistique automatique</h5><div class="result-text">${insights.map(i=>`<i class="bi bi-lightbulb"></i> ${i}<br>`).join('')}</div></div>`;
+        } catch(e) { container.innerHTML = '<p class="text-danger">Erreur chargement stats.</p>'; }
+    }
+
+    window.addEventListener('load', () => {
+        loadHeroStats();
+        document.querySelectorAll('.section-content').forEach(el => el.classList.add('d-none'));
+        document.getElementById('section-accueil').classList.remove('d-none');
+        document.getElementById('btn-accueil').classList.add('active');
+    });
+</script>
+</body>
+</html>
