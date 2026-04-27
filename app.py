@@ -209,4 +209,4 @@ def serve_frontend():
         return "Le fichier index.html n'est pas présent. Placez-le dans le même dossier que ce script.", 200
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5000)
+    app.run(debug=True, port=5000,host="0.0.0.0")
